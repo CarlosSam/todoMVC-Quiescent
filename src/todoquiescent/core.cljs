@@ -1,6 +1,7 @@
 (ns todoquiescent.core
   (:require [quiescent.core :as q]
-            [quiescent.dom :as d]))
+            [quiescent.dom :as d]
+            [bidi.bidi :as bidi]))
 
 (def VIEW_MODE_ALL :all)
 
@@ -82,10 +83,36 @@
                        {:id 4369 :title "ensinar realmente" :completed true}]
                :view-mode :all})
 
-(q/render (TodoApp my-model)
-          (aget (.getElementsByClassName js/document "todoapp") 0))
+(def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed false}     
+                               {:id 6204 :title "marketing digital" :completed false}
+                               {:id 4369 :title "ensinar React.js" :completed true}]
+                       :view-mode :all}))
+
+(defn render []
+  (q/render (TodoApp @model-todo)
+          (aget (.getElementsByClassName js/document "todoapp") 0)))
+
+(add-watch model-todo :render-todos (fn [_ _ old new]
+                                      (when (not= old new)
+                                        (render))))
+
+(def my-routes ["/" {"" :all
+                     "active" :active
+                     "completed" :completed}])
+
+(defn routing-fn []
+  (->> (-> (.-hash js/location)
+           (.slice 1))
+       (bidi/match-route my-routes)
+       :handler
+       (swap! model-todo assoc :view-mode)))
 
 (set! (.-onload js/window)
       #(do
-         (.log js/console "Boa Noite")))
+         (routing-fn)))
+
+(set! (.-onhashchange js/window) 
+      routing-fn)
+
+(render)
 
