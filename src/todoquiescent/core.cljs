@@ -37,6 +37,19 @@
               (d/button {:className "clear-completed"}
                         "Clear completed")) ))
 
+(q/defcomponent TodoItem
+  "item"
+  [id title completed]
+  (d/li {:data-id id
+         :className (when completed "completed")}
+        (d/div {:className "view"}
+               (d/input {:className "toggle"
+                         :type "checkbox"
+                         :defaultChecked completed})
+               (d/label {}
+                        title)
+               (d/button {:className "destroy"}))))
+
 (q/defcomponent TodoApp
    "Entire app"
    [model]
@@ -50,15 +63,24 @@
                        (d/input {:className "toggle-all"})
                        (d/label {:htmlFor "toggle-all"}
                                 "Mark all as complete")
-                       (d/ul {:className "todo-list"})))
+                       (d/ul {:className "todo-list"}
+                             (map (fn [{:keys [id title completed]}] 
+                                    (TodoItem id title completed)) 
+                                  (filter (fn [t]
+                                            (condp = (:view-mode model)
+                                              VIEW_MODE_ALL true
+                                              VIEW_MODE_ACTIVE (not (:completed t))
+                                              VIEW_MODE_COMPLETED (:completed t)))
+                                          (:todos model))))))
           (when (pos? (count (:todos model)))
             (Footer (:view-mode model) 
                     (count (filter (complement :completed) (:todos model)))
                     (some :completed (:todos model))))))
 
-(def my-model {:todos [{:id 1357 :title "fazer aplicativo de ensino de línguas" :completed true}
-                       {:id 6204 :title "vender muito" :completed true}]
-               :view-mode :completed})
+(def my-model {:todos [{:id 1357 :title "fazer aplicativo de ensino de línguas" :completed false}
+                       {:id 6204 :title "vender muito" :completed false}
+                       {:id 4369 :title "ensinar realmente" :completed true}]
+               :view-mode :all})
 
 (q/render (TodoApp my-model)
           (aget (.getElementsByClassName js/document "todoapp") 0))
