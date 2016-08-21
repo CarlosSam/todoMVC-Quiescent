@@ -10,10 +10,13 @@
 
 (def VIEW_MODE_COMPLETED :completed)
 
-(def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed false}     
+(def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed true}     
                                {:id 6204 :title "marketing digital" :completed false}
                                {:id 4369 :title "ensinar React.js" :completed true}]
                        :view-mode :all}))
+
+(defn remove-completed [evt]
+  (swap! model-todo  (fn [md] (assoc md :todos (vec (remove :completed (:todos md)))))))
 
 (q/defcomponent Footer
   "Footer"
@@ -41,8 +44,9 @@
                               :href "#/completed"}
                              "Completed")))
             (when has-completed-todos
-              (d/button {:className "clear-completed"}
-                        "Clear completed")) ))
+              (d/button {:className "clear-completed"
+                         :onClick remove-completed}
+                        "Clear completed"))))
 
 (defn remove-todo [id]
   (swap! model-todo (fn [md] (assoc md :todos (vec (remove #(= (:id %) id) (:todos md)))))))
