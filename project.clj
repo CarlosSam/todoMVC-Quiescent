@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.225"]
                  [bidi "2.0.9"]
+                 [enfocus "2.1.1"]
                  [quiescent "0.3.2"]]
   :plugins [[lein-figwheel "0.5.0-1"]
             [lein-cljsbuild "1.1.3"]]

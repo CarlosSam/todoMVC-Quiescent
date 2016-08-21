@@ -1,6 +1,7 @@
 (ns todoquiescent.core
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
+            [enfocus.core :as ef]
             [bidi.bidi :as bidi]))
 
 (def VIEW_MODE_ALL :all)
@@ -8,6 +9,11 @@
 (def VIEW_MODE_ACTIVE :active)
 
 (def VIEW_MODE_COMPLETED :completed)
+
+(def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed false}     
+                               {:id 6204 :title "marketing digital" :completed false}
+                               {:id 4369 :title "ensinar React.js" :completed true}]
+                       :view-mode :all}))
 
 (q/defcomponent Footer
   "Footer"
@@ -38,6 +44,13 @@
               (d/button {:className "clear-completed"}
                         "Clear completed")) ))
 
+(defn remove-todo [id]
+  (swap! model-todo (fn [md] (assoc md :todos (vec (remove #(= (:id %) id) (:todos md)))))))
+
+(defn remove-todo-listener [evt]
+  (let [id (js/parseInt (ef/from (-> evt .-currentTarget .-parentElement .-parentElement) (ef/get-attr :data-id)))]
+    (remove-todo id)))
+
 (q/defcomponent TodoItem
   "item"
   [id title completed]
@@ -49,7 +62,8 @@
                          :defaultChecked completed})
                (d/label {}
                         title)
-               (d/button {:className "destroy"}))))
+               (d/button {:className "destroy"
+                          :onClick remove-todo-listener}))))
 
 (q/defcomponent TodoApp
    "Entire app"
@@ -77,16 +91,6 @@
             (Footer (:view-mode model) 
                     (count (filter (complement :completed) (:todos model)))
                     (some :completed (:todos model))))))
-
-(def my-model {:todos [{:id 1357 :title "fazer aplicativo de ensino de línguas" :completed false}
-                       {:id 6204 :title "vender muito" :completed false}
-                       {:id 4369 :title "ensinar realmente" :completed true}]
-               :view-mode :all})
-
-(def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed false}     
-                               {:id 6204 :title "marketing digital" :completed false}
-                               {:id 4369 :title "ensinar React.js" :completed true}]
-                       :view-mode :all}))
 
 (defn render []
   (q/render (TodoApp @model-todo)
