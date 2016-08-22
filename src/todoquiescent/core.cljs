@@ -20,7 +20,7 @@
 
 (q/defcomponent Footer
   "Footer"
-  [view-mode qtds-todos-left has-completed-todos]
+  [{:keys [view-mode qtds-todos-left has-completed-todos]}]
   (d/footer {:className "footer"}
             (d/span {:className "todo-count"}
                     (d/strong {}
@@ -55,15 +55,27 @@
   (let [id (js/parseInt (ef/from (-> evt .-currentTarget .-parentElement .-parentElement) (ef/get-attr :data-id)))]
     (remove-todo id)))
 
+(defn idx-todo [id]
+  (count (for [e (:todos @model-todo)
+               :while (not= (:id e) id)]
+           nil)))
+
+(defn toggle-completed [evt]
+  (let [id (-> evt .-currentTarget .-parentElement .-parentElement (ef/at (ef/get-attr :data-id)) js/parseInt)
+        idx (idx-todo id)]
+    (swap! model-todo update-in [:todos idx :completed] not)))
+
 (q/defcomponent TodoItem
   "item"
-  [id title completed]
+  :keyfn identity
+  [{:keys [id title completed]}]
   (d/li {:data-id id
          :className (when completed "completed")}
         (d/div {:className "view"}
                (d/input {:className "toggle"
                          :type "checkbox"
-                         :defaultChecked completed})
+                         :defaultChecked completed
+                         :onClick toggle-completed})
                (d/label {}
                         title)
                (d/button {:className "destroy"
@@ -71,38 +83,40 @@
 
 (q/defcomponent TodoApp
    "Entire app"
-   [model]
+   [{:keys [todos view-mode]}]
    (d/div {}
           (d/header {:className "header"}
                     (d/h1 {} 
                           "todos")
                     (d/input {:className "new-todo"}))
-          (when (pos? (count (:todos model)))
+          (when (pos? (count todos))
             (d/section {:className "main"}
                        (d/input {:className "toggle-all"})
                        (d/label {:htmlFor "toggle-all"}
                                 "Mark all as complete")
                        (d/ul {:className "todo-list"}
                              (map (fn [{:keys [id title completed]}] 
-                                    (TodoItem id title completed)) 
+                                    (TodoItem {:id id 
+                                               :title title 
+                                               :completed completed})) 
                                   (filter (fn [t]
-                                            (condp = (:view-mode model)
+                                            (condp = view-mode
                                               VIEW_MODE_ALL true
                                               VIEW_MODE_ACTIVE (not (:completed t))
                                               VIEW_MODE_COMPLETED (:completed t)))
-                                          (:todos model))))))
-          (when (pos? (count (:todos model)))
-            (Footer (:view-mode model) 
-                    (count (filter (complement :completed) (:todos model)))
-                    (some :completed (:todos model))))))
+                                          todos)))))
+          (when (pos? (count todos))
+            (Footer {:view-mode view-mode
+                     :qtds-todos-left (count (filter (complement :completed) todos))
+                     :has-completed-todos (some :completed todos)}))))
 
 (defn render []
-  (q/render (TodoApp @model-todo)
-          (aget (.getElementsByClassName js/document "todoapp") 0)))
+  (q/render (TodoApp {:todos (:todos @model-todo)
+                      :view-mode (:view-mode @model-todo)})
+            (aget (.getElementsByClassName js/document "todoapp") 0)))
 
 (add-watch model-todo :render-todos (fn [_ _ old new]
-                                      (when (not= old new)
-                                        (render))))
+                                      (render)))
 
 (def my-routes ["/" {"" :all
                      "active" :active
@@ -113,6 +127,7 @@
            (.slice 1))
        (bidi/match-route my-routes)
        :handler
+       (#(if (nil? %) :all %))
        (swap! model-todo assoc :view-mode)))
 
 (set! (.-onload js/window)
