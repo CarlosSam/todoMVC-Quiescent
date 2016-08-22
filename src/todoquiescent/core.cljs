@@ -94,6 +94,18 @@
                  (conj tds {:id (.now js/Date) :title t :completed false})))
         (ef/from (-> evt .-currentTarget) (ef/set-form-input ""))))))
 
+(defn toggle-all-todos [evt]
+  (let [completed? (not (-> evt .-currentTarget .-checked))]
+    (dorun (map #(swap! model-todo update-in [:todos % :completed] (constantly completed?)) (range (count (:todos @model-todo)))))))
+
+(add-watch model-todo :all-todos-completed (fn [_ _ old new]
+                                             (when (not= old new)
+                                               (let [todos-completed (every? :completed (:todos new))
+                                                     toggle-all-checked (ef/from ".toggle-all" (ef/read-form-input))]
+                                                 (ef/at ".toggle-all" (cond 
+                                                                       (and todos-completed toggle-all-checked) (ef/set-form-input nil)
+                                                                       (and (not todos-completed) (not toggle-all-checked)) (ef/set-form-input #{"all-completed"})))))))
+
 (q/defcomponent TodoApp
    "Entire app"
    [{:keys [todos view-mode]}]
@@ -105,7 +117,10 @@
                               :onKeyUp handle-input-key-press}))
           (when (pos? (count todos))
             (d/section {:className "main"}
-                       (d/input {:className "toggle-all"})
+                       (d/input {:className "toggle-all"
+                                 :type "checkbox"
+                                 :value "all-completed"
+                                 :onClick toggle-all-todos})
                        (d/label {:htmlFor "toggle-all"}
                                 "Mark all as complete")
                        (d/ul {:className "todo-list"}
