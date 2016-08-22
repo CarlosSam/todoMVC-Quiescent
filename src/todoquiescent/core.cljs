@@ -1,6 +1,8 @@
 (ns todoquiescent.core
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
+            [todoquiescent.storage :as storage]
+            [todoquiescent.model :refer [model-todo]]
             [enfocus.core :as ef]
             [bidi.bidi :as bidi]))
 
@@ -14,10 +16,6 @@
 
 (def ESC_KEY 27)
 
-(def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed true}     
-                               {:id 6204 :title "marketing digital" :completed false}
-                               {:id 4369 :title "ensinar React.js" :completed true}]
-                       :view-mode :all}))
 
 (defn remove-completed [evt]
   (swap! model-todo  (fn [md] (assoc md :todos (vec (remove :completed (:todos md)))))))
@@ -132,7 +130,12 @@
             (aget (.getElementsByClassName js/document "todoapp") 0)))
 
 (add-watch model-todo :render-todos (fn [_ _ old new]
-                                      (render)))
+                                      (when (not= old new)
+                                        (render))))
+
+(add-watch model-todo :store-todos (fn [_ _ old new]
+                                     (when (not= old new)
+                                       (storage/store-todos))))
 
 (def my-routes ["/" {"" :all
                      "active" :active
@@ -148,10 +151,10 @@
 
 (set! (.-onload js/window)
       #(do
+         (storage/load-todos)
          (routing-fn)))
 
 (set! (.-onhashchange js/window) 
       routing-fn)
 
 (render)
-
