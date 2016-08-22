@@ -10,6 +10,10 @@
 
 (def VIEW_MODE_COMPLETED :completed)
 
+(def ENTER_KEY 13)
+
+(def ESC_KEY 27)
+
 (def model-todo (atom {:todos [{:id 1357 :title "fazer aplicativo de ensino de espanhol" :completed true}     
                                {:id 6204 :title "marketing digital" :completed false}
                                {:id 4369 :title "ensinar React.js" :completed true}]
@@ -81,6 +85,17 @@
                (d/button {:className "destroy"
                           :onClick remove-todo-listener}))))
 
+(defn handle-input-key-press [evt]
+  (when (= ENTER_KEY (.-keyCode evt))
+    (let [t (-> evt .-currentTarget .-value .trim)]
+      (when (seq t)
+        (swap! model-todo
+               update
+               :todos
+               (fn [tds]
+                 (conj tds {:id (.now js/Date) :title t :completed false})))
+        (ef/from (-> evt .-currentTarget) (ef/set-form-input ""))))))
+
 (q/defcomponent TodoApp
    "Entire app"
    [{:keys [todos view-mode]}]
@@ -88,7 +103,8 @@
           (d/header {:className "header"}
                     (d/h1 {} 
                           "todos")
-                    (d/input {:className "new-todo"}))
+                    (d/input {:className "new-todo"
+                              :onKeyUp handle-input-key-press}))
           (when (pos? (count todos))
             (d/section {:className "main"}
                        (d/input {:className "toggle-all"})
