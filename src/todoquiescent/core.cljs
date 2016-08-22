@@ -67,6 +67,32 @@
         idx (idx-todo id)]
     (swap! model-todo update-in [:todos idx :completed] not)))
 
+(defn leave-edit-mode []
+  (when (seq (ef/from ".editing" identity))
+    (ef/at ".editing" (ef/remove-class "editing"))))
+
+(defn process-edit-input [evt]
+  (let [t (-> evt .-currentTarget .-value .trim)
+        id (js/parseInt (ef/at (-> evt .-currentTarget .-parentElement) (ef/get-attr :data-id)))
+        idx (idx-todo id)]
+    (if (seq t)
+      (swap! model-todo update-in [:todos idx :title] (constantly t))
+      (remove-todo id))
+    (leave-edit-mode)))
+
+(defn prepare-edit-input [evt]
+  (let [li-element (-> evt .-currentTarget .-parentElement .-parentElement)]
+    (ef/at li-element (ef/add-class "editing"))
+    (ef/at li-element ".edit" (ef/focus))))
+
+(defn handle-onkeyup [evt]
+  (cond
+   (= ESC_KEY (.-keyCode evt)) (do 
+                                 (ef/at (-> evt .-currentTarget) (ef/set-form-input (ef/from (-> evt .-currentTarget .-parentElement) (ef/get-text))))
+                                 (leave-edit-mode))
+   (= ENTER_KEY (.-keyCode evt)) (ef/at (-> evt .-currentTarget) (ef/blur))
+   :default nil))
+
 (q/defcomponent TodoItem
   "item"
   :keyfn identity
@@ -78,10 +104,14 @@
                          :type "checkbox"
                          :defaultChecked completed
                          :onClick toggle-completed})
-               (d/label {}
+               (d/label {:onDoubleClick prepare-edit-input}
                         title)
                (d/button {:className "destroy"
-                          :onClick remove-todo-listener}))))
+                          :onClick remove-todo-listener}))
+        (d/input {:defaultValue title
+                  :className "edit"
+                  :onBlur process-edit-input
+                  :onKeyUp handle-onkeyup})))
 
 (defn handle-input-key-press [evt]
   (when (= ENTER_KEY (.-keyCode evt))
