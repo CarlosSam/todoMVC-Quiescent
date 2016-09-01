@@ -33,7 +33,7 @@
         id (js/parseInt (ef/at (-> evt .-currentTarget .-parentElement) (ef/get-attr :data-id)))
         idx (idx-todo id)]
     (if (seq t)
-      (swap! model-todo update-in [:todos idx :title] (constantly t))
+      (am/go (async/>! model/update-model-channel [(constantly t) [:todos idx :title]]))
       (remove-todo id))
     (leave-edit-mode)))
 
