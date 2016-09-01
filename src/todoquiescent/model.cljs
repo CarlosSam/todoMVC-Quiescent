@@ -12,5 +12,5 @@
   (conj todos todo))
 
 (defn toggle-all-todos [todos completed?]
-  (for [todo todos]
-    (assoc todo :completed completed?)))
+  (vec (for [todo todos]
+         (assoc todo :completed completed?))))

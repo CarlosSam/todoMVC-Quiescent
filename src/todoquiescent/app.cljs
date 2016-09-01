@@ -18,7 +18,7 @@
 
 (defn toggle-all-todos [evt]
   (let [completed? (not (-> evt .-currentTarget .-checked))]
-    (dorun (map #(swap! model-todo update-in [:todos % :completed] (constantly completed?)) (range (count (:todos @model-todo)))))))
+    (am/go (async/>! model/update-model-channel [model/toggle-all-todos :todos completed?]))))
 
 (add-watch model-todo :all-todos-completed (fn [_ _ old new]
                                              (when (not= old new)
