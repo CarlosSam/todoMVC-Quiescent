@@ -13,12 +13,15 @@
   (when (= ENTER_KEY (.-keyCode evt))
     (let [t (-> evt .-currentTarget .-value .trim)]
       (when (seq t)
-        (am/go (async/>! model/update-model-channel [model/add-todo [:todos] {:id (.now js/Date) :title t :completed false}]))
+        (am/go (async/>! model/update-model-channel [(partial conj) [:todos] {:id (.now js/Date) :title t :completed false}]))
         (ef/from (-> evt .-currentTarget) (ef/set-form-input ""))))))
 
 (defn toggle-all-todos [evt]
   (let [completed? (not (-> evt .-currentTarget .-checked))]
-    (am/go (async/>! model/update-model-channel [model/toggle-all-todos [:todos] completed?]))))
+    (am/go (async/>! model/update-model-channel [#(vec (for [todo %]
+                                                         (assoc todo :completed %2))) 
+                                                 [:todos] 
+                                                 completed?]))))
 
 (add-watch model-todo :all-todos-completed (fn [_ _ old new]
                                              (when (not= old new)

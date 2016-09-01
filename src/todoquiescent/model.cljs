@@ -8,9 +8,3 @@
 
 (def update-model-channel (async/chan))
 
-(defn add-todo [todos todo]
-  (conj todos todo))
-
-(defn toggle-all-todos [todos completed?]
-  (vec (for [todo todos]
-         (assoc todo :completed completed?))))
