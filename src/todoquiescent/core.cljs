@@ -1,11 +1,13 @@
 (ns todoquiescent.core
+  (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
+            [clojure.core.async :as async]
             [todoquiescent.storage :as storage]
             [todoquiescent.footer :refer [Footer]]
             [todoquiescent.item :refer [TodoItem]]
             [todoquiescent.app :refer [TodoApp]]
-            [todoquiescent.model :refer [model-todo]]
+            [todoquiescent.model :as model :refer [model-todo]]
             [enfocus.core :as ef]
             [bidi.bidi :as bidi]))
 
@@ -43,3 +45,7 @@
       routing-fn)
 
 (render)
+
+(am/go (while true 
+         (let [[[f k e]] (async/alts! [model/update-model-channel])] 
+           (swap! model-todo update-in [k] f e))))

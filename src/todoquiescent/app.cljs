@@ -1,7 +1,9 @@
 (ns todoquiescent.app
+  (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
-            [todoquiescent.model :refer [model-todo]]
+            [clojure.core.async :as async]
+            [todoquiescent.model :as model :refer [model-todo]]
             [todoquiescent.item :refer [TodoItem]]
             [todoquiescent.footer :refer [Footer]]
             [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED ENTER_KEY ESC_KEY]]
@@ -11,11 +13,7 @@
   (when (= ENTER_KEY (.-keyCode evt))
     (let [t (-> evt .-currentTarget .-value .trim)]
       (when (seq t)
-        (swap! model-todo
-               update
-               :todos
-               (fn [tds]
-                 (conj tds {:id (.now js/Date) :title t :completed false})))
+        (am/go (async/>! model/update-model-channel [model/add-todo :todos {:id (.now js/Date) :title t :completed false}]))
         (ef/from (-> evt .-currentTarget) (ef/set-form-input ""))))))
 
 (defn toggle-all-todos [evt]

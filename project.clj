@@ -6,11 +6,12 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.225"]
                  [bidi "2.0.9"]
+                 [org.clojure/core.async "0.2.385"]
                  [enfocus "2.1.1"]
                  [quiescent "0.3.2"]]
   :plugins [[lein-figwheel "0.5.0-1"]
             [lein-cljsbuild "1.1.3"]]
-  :clean-targets ^{:protect false} [:target-path "out" "out-dev" "cljs"]
+  :clean-targets ^{:protect false} [:target-path "resources/public/cljs"]
   :cljsbuild {
     :builds {:dev {:source-paths ["src"]
                    :figwheel true
