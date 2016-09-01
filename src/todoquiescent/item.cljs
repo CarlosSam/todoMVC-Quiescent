@@ -8,7 +8,7 @@
             [enfocus.core :as ef]))
 
 (defn remove-todo [id]
-  (swap! model-todo (fn [md] (assoc md :todos (vec (remove #(= (:id %) id) (:todos md)))))))
+  (am/go (async/>! model/update-model-channel [(fn [todos] (vec (remove #(= (:id %) id) todos))) [:todos] id])))
 
 (defn remove-todo-listener [evt]
   (let [id (js/parseInt (ef/from (-> evt .-currentTarget .-parentElement .-parentElement) (ef/get-attr :data-id)))]
