@@ -1,7 +1,9 @@
 (ns todoquiescent.item
+  (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
-            [todoquiescent.model :refer [model-todo]]
+            [clojure.core.async :as async]            
+            [todoquiescent.model :as model :refer [model-todo]]
             [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED ENTER_KEY ESC_KEY]]
             [enfocus.core :as ef]))
 
@@ -20,7 +22,7 @@
 (defn toggle-completed [evt]
   (let [id (-> evt .-currentTarget .-parentElement .-parentElement (ef/at (ef/get-attr :data-id)) js/parseInt)
         idx (idx-todo id)]
-    (swap! model-todo update-in [:todos idx :completed] not)))
+    (am/go (async/>! model/update-model-channel [not [:todos idx :completed]]))))
 
 (defn leave-edit-mode []
   (when (seq (ef/from ".editing" identity))

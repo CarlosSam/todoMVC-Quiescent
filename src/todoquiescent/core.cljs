@@ -47,5 +47,5 @@
 (render)
 
 (am/go (while true 
-         (let [[[f k e]] (async/alts! [model/update-model-channel])] 
-           (swap! model-todo update-in [k] f e))))
+         (let [[[f ks & e]] (async/alts! [model/update-model-channel])] 
+           (apply swap! model-todo update-in ks f e))))
