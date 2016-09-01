@@ -1,11 +1,13 @@
 (ns todoquiescent.footer
+  (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
+            [clojure.core.async :as async]
             [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED]]
-            [todoquiescent.model :refer [model-todo]]))
+            [todoquiescent.model :as model :refer [model-todo]]))
 
 (defn remove-completed [evt]
-  (swap! model-todo  (fn [md] (assoc md :todos (vec (remove :completed (:todos md)))))))
+  (am/go (async/>! model/update-model-channel [#(vec (remove :completed %)) [:todos]])))
 
 (q/defcomponent Footer
   "Footer"
