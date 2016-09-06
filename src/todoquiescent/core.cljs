@@ -3,49 +3,55 @@
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
             [clojure.core.async :as async]
+            [todoquiescent.model :as model]
             [todoquiescent.storage :as storage]
             [todoquiescent.footer :refer [Footer]]
             [todoquiescent.item :refer [TodoItem]]
-            [todoquiescent.app :refer [TodoApp]]
-            [todoquiescent.model :as model :refer [model-todo]]
+            [todoquiescent.app :as app :refer [TodoApp]]
             [enfocus.core :as ef]
             [bidi.bidi :as bidi]))
 
-(defn render []
-  (q/render (TodoApp {:todos (:todos @model-todo)
-                      :view-mode (:view-mode @model-todo)})
+(defn render [model]
+  (q/render (TodoApp {:todos (:todos model)
+                      :view-mode (:view-mode model)})
             (aget (.getElementsByClassName js/document "todoapp") 0)))
 
-(add-watch model-todo :render-todos (fn [_ _ old new]
-                                      (when (not= old new)
-                                        (render))))
-
-(add-watch model-todo :store-todos (fn [_ _ old new]
-                                     (when (not= old new)
-                                       (storage/store-todos new))))
+(defn enable-render-updates [model-atom]
+  (add-watch model-atom :render-todos (fn [_ _ old new]
+                                        (when (not= old new)
+                                          (render new)))))
 
 (def my-routes ["/" {"" :all
                      "active" :active
                      "completed" :completed}])
 
-(defn routing-fn []
+(defn routing-fn [model-atom]
   (->> (-> (.-hash js/location)
            (.slice 1))
        (bidi/match-route my-routes)
        :handler
        (#(if (nil? %) :all %))
-       (swap! model-todo assoc :view-mode)))
+       (swap! model-atom assoc :view-mode)))
 
-(set! (.-onload js/window)
-      #(do
-         (storage/load-todos)
-         (routing-fn)))
+(defn enable-routing [model]
+  (set! (.-onhashchange js/window) 
+        #(routing-fn model)))
 
-(set! (.-onhashchange js/window) 
-      routing-fn)
+(defn enable-process-actions [model-todo]
+  (am/go (while true 
+           (let [[[f ks & e]] (async/alts! [model/update-model-channel])] 
+             (apply swap! model-todo update-in ks f e)))))
 
-(render)
+(defn start-model []
+  (or (storage/load-todos) (model/initial-model-todo)))
 
-(am/go (while true 
-         (let [[[f ks & e]] (async/alts! [model/update-model-channel])] 
-           (apply swap! model-todo update-in ks f e))))
+(defn ^:export react-quiesce-main []
+  "application entry point"
+  (.log js/console "iniciando aplicação")
+  (let [model (atom (start-model))]
+    (enable-process-actions model)
+    (enable-render-updates model)
+    (storage/enable-store-todos model)
+    (enable-routing model)
+    (app/enable-all-todos-completed-checkbox-update model)
+    (render @model)))

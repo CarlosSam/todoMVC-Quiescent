@@ -2,9 +2,9 @@
   (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
+            [todoquiescent.model :as model]
             [clojure.core.async :as async]
-            [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED]]
-            [todoquiescent.model :as model :refer [model-todo]]))
+            [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED]]))
 
 (defn remove-completed [evt]
   (am/go (async/>! model/update-model-channel [#(vec (remove :completed %)) [:todos]])))

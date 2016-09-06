@@ -1,16 +1,18 @@
 (ns todoquiescent.storage
-  (:require [todoquiescent.model :refer [model-todo]]
-            [cljs.reader :as reader]))
+  (:require [cljs.reader :as reader]))
 
 (def LOCAL_STORAGE_NAMESPACE "todos-quiescent-cljs")
 
 (defn load-todos []
-  (->> LOCAL_STORAGE_NAMESPACE
-       (.getItem js/localStorage)
-       reader/read-string
-       (reset! model-todo)))
+  (when-let [item_as_str (.getItem js/localStorage LOCAL_STORAGE_NAMESPACE)]
+    (reader/read-string item_as_str)))
 
 (defn store-todos [state]
   (->> state
        str
        (.setItem js/localStorage LOCAL_STORAGE_NAMESPACE)))
+
+(defn enable-store-todos [model]
+  (add-watch model :store-todos (fn [_ _ old new]
+                                  (when (not= old new)
+                                    (store-todos new)))))

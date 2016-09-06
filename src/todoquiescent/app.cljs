@@ -3,7 +3,7 @@
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
             [clojure.core.async :as async]
-            [todoquiescent.model :as model :refer [model-todo]]
+            [todoquiescent.model :as model]
             [todoquiescent.item :refer [TodoItem]]
             [todoquiescent.footer :refer [Footer]]
             [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED ENTER_KEY ESC_KEY]]
@@ -23,13 +23,14 @@
                                                  [:todos] 
                                                  completed?]))))
 
-(add-watch model-todo :all-todos-completed (fn [_ _ old new]
-                                             (when (not= old new)
-                                               (let [todos-completed (every? :completed (:todos new))
-                                                     toggle-all-checked (ef/from ".toggle-all" (ef/read-form-input))]
-                                                 (ef/at ".toggle-all" (cond 
-                                                                       (and todos-completed toggle-all-checked) (ef/set-form-input nil)
-                                                                       (and (not todos-completed) (not toggle-all-checked)) (ef/set-form-input #{"all-completed"})))))))
+(defn enable-all-todos-completed-checkbox-update [model]
+  (add-watch model :all-todos-completed (fn [_ _ old new]
+                                          (when (not= old new)
+                                            (let [todos-completed (every? :completed (:todos new))
+                                                  toggle-all-checked (ef/from ".toggle-all" (ef/read-form-input))]
+                                              (ef/at ".toggle-all" (cond 
+                                                                     (and todos-completed toggle-all-checked) (ef/set-form-input nil)
+                                                                     (and (not todos-completed) (not toggle-all-checked)) (ef/set-form-input #{"all-completed"}))))))))
 
 (q/defcomponent TodoApp
    "Entire app"
@@ -52,7 +53,8 @@
                              (map (fn [{:keys [id title completed]}] 
                                     (TodoItem {:id id 
                                                :title title 
-                                               :completed completed})) 
+                                               :completed completed
+                                               :todos todos})) 
                                   (filter (fn [t]
                                             (condp = view-mode
                                               VIEW_MODE_ALL true

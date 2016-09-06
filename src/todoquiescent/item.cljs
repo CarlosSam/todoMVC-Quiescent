@@ -2,38 +2,38 @@
   (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
-            [clojure.core.async :as async]            
-            [todoquiescent.model :as model :refer [model-todo]]
+            [clojure.core.async :as async]
+            [todoquiescent.model :refer [update-model-channel]]
             [todoquiescent.utils :refer [VIEW_MODE_ALL VIEW_MODE_ACTIVE VIEW_MODE_COMPLETED ENTER_KEY ESC_KEY]]
             [enfocus.core :as ef]))
 
 (defn remove-todo [id]
-  (am/go (async/>! model/update-model-channel [(fn [todos] (vec (remove #(= (:id %) id) todos))) [:todos] id])))
+  (am/go (async/>! update-model-channel [(fn [todos] (vec (remove #(= (:id %) id) todos))) [:todos] id])))
 
 (defn remove-todo-listener [evt]
   (let [id (js/parseInt (ef/from (-> evt .-currentTarget .-parentElement .-parentElement) (ef/get-attr :data-id)))]
     (remove-todo id)))
 
-(defn idx-todo [id]
-  (count (for [e (:todos @model-todo)
+(defn idx-todo [todos id]
+  (count (for [e todos
                :while (not= (:id e) id)]
            nil)))
 
-(defn toggle-completed [evt]
+(defn toggle-completed [todos evt]
   (let [id (-> evt .-currentTarget .-parentElement .-parentElement (ef/at (ef/get-attr :data-id)) js/parseInt)
-        idx (idx-todo id)]
-    (am/go (async/>! model/update-model-channel [not [:todos idx :completed]]))))
+        idx (idx-todo todos id)]
+    (am/go (async/>! update-model-channel [not [:todos idx :completed]]))))
 
 (defn leave-edit-mode []
   (when (seq (ef/from ".editing" identity))
     (ef/at ".editing" (ef/remove-class "editing"))))
 
-(defn process-edit-input [evt]
+(defn process-edit-input [todos evt]
   (let [t (-> evt .-currentTarget .-value .trim)
         id (js/parseInt (ef/at (-> evt .-currentTarget .-parentElement) (ef/get-attr :data-id)))
-        idx (idx-todo id)]
+        idx (idx-todo todos id)]
     (if (seq t)
-      (am/go (async/>! model/update-model-channel [(constantly t) [:todos idx :title]]))
+      (am/go (async/>! update-model-channel [(constantly t) [:todos idx :title]]))
       (remove-todo id))
     (leave-edit-mode)))
 
@@ -53,19 +53,19 @@
 (q/defcomponent TodoItem
   "item"
   :keyfn identity
-  [{:keys [id title completed]}]
+  [{:keys [id title completed todos]}]
   (d/li {:data-id id
          :className (when completed "completed")}
         (d/div {:className "view"}
                (d/input {:className "toggle"
                          :type "checkbox"
                          :defaultChecked completed
-                         :onClick toggle-completed})
+                         :onClick (partial toggle-completed todos)})
                (d/label {:onDoubleClick prepare-edit-input}
                         title)
                (d/button {:className "destroy"
                           :onClick remove-todo-listener}))
         (d/input {:defaultValue title
                   :className "edit"
-                  :onBlur process-edit-input
+                  :onBlur (partial process-edit-input todos)
                   :onKeyUp handle-onkeyup})))
