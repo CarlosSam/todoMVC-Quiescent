@@ -22,7 +22,7 @@
 
 (add-watch model-todo :store-todos (fn [_ _ old new]
                                      (when (not= old new)
-                                       (storage/store-todos))))
+                                       (storage/store-todos new))))
 
 (def my-routes ["/" {"" :all
                      "active" :active

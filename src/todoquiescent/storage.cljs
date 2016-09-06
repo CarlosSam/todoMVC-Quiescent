@@ -10,7 +10,7 @@
        reader/read-string
        (reset! model-todo)))
 
-(defn store-todos []
-  (->> @model-todo
+(defn store-todos [state]
+  (->> state
        str
        (.setItem js/localStorage LOCAL_STORAGE_NAMESPACE)))
