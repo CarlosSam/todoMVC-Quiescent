@@ -2,14 +2,15 @@
   (:require-macros [cljs.core.async.macros :as am])
   (:require [quiescent.core :as q]
             [quiescent.dom :as d]
+            [goog.History]
+            [goog.events :as e]
             [clojure.core.async :as async]
             [todoquiescent.model :as model]
             [todoquiescent.storage :as storage]
             [todoquiescent.footer :refer [Footer]]
             [todoquiescent.item :refer [TodoItem]]
             [todoquiescent.app :as app :refer [TodoApp]]
-            [enfocus.core :as ef]
-            [bidi.bidi :as bidi]))
+            [enfocus.core :as ef]))
 
 (defn render [model]
   (q/render (TodoApp {:todos (:todos model)
@@ -21,21 +22,20 @@
                                         (when (not= old new)
                                           (render new)))))
 
-(def my-routes ["/" {"" :all
-                     "active" :active
-                     "completed" :completed}])
-
-(defn routing-fn [model-atom]
-  (->> (-> (.-hash js/location)
-           (.slice 1))
-       (bidi/match-route my-routes)
-       :handler
-       (#(if (nil? %) :all %))
-       (swap! model-atom assoc :view-mode)))
-
-(defn enable-routing [model]
-  (set! (.-onhashchange js/window) 
-        #(routing-fn model)))
+(defn enable-routing
+  "Set up Google Closure history management"
+  [model-atom]
+  (let [h (goog.History.)]
+    (.setEnabled h true)
+    (e/listen h goog.History.EventType.NAVIGATE
+              (fn [evt]
+                (let [token (.-token evt)]
+                  (am/go (async/>! model/update-model-channel [#(comp = %
+                                                                      "/active" :active
+                                                                      "/completed" :completed
+                                                                      :all)
+                                                               [:view-mode] 
+                                                               token])))))))
 
 (defn enable-process-actions [model-todo]
   (am/go (while true 
