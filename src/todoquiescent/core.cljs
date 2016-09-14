@@ -30,7 +30,7 @@
     (e/listen h goog.History.EventType.NAVIGATE
               (fn [evt]
                 (let [token (.-token evt)]
-                  (am/go (async/>! model/update-model-channel [#(comp = %
+                  (am/go (async/>! model/update-model-channel [#(condp = %2
                                                                       "/active" :active
                                                                       "/completed" :completed
                                                                       :all)
@@ -39,7 +39,7 @@
 
 (defn enable-process-actions [model-todo]
   (am/go (while true 
-           (let [[[f ks & e]] (async/alts! [model/update-model-channel])] 
+           (let [[f ks & e] (async/<! model/update-model-channel)] 
              (apply swap! model-todo update-in ks f e)))))
 
 (defn start-model []
@@ -55,3 +55,5 @@
     (enable-routing model)
     (app/enable-all-todos-completed-checkbox-update model)
     (render @model)))
+
+(enable-console-print!)
